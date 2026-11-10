@@ -9,7 +9,7 @@ export default function EditCard() {
 
   return (
     <TripGate tripId={id}>
-      {({ trip, cards, canEdit }) => {
+      {({ trip, cards, places, canEdit }) => {
         const card = cards.find((candidate) => candidate.id === cardId);
         if (!card) {
           return (
@@ -23,7 +23,7 @@ export default function EditCard() {
           <>
             <Stack.Screen options={{ title: card.title }} />
             {/* Keyed so the form resets if another card is opened in place. */}
-            <CardEditor key={card.id} trip={trip} cards={cards} existing={card} readOnly={!canEdit} />
+            <CardEditor key={card.id} trip={trip} cards={cards} places={places} existing={card} readOnly={!canEdit} />
           </>
         );
       }}

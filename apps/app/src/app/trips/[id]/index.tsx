@@ -4,6 +4,7 @@ import {
   groupByDay,
   groupByKind,
   isInPlan,
+  type Place,
   planMove,
 } from '@plantodo/domain';
 import { Link, Stack, useLocalSearchParams, useRouter } from 'expo-router';
@@ -11,12 +12,14 @@ import { useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { Choice } from '@/components/choice';
+import { PlanMap } from '@/components/plan-map';
 import { TripGate } from '@/components/trip-gate';
 import { Body, Button, Card, Heading, Row, Screen, Title } from '@/components/ui';
 import { errorMessage, useReorderCards } from '@/lib/api';
 import {
   formatCardDetails,
   formatCardWhen,
+  formatCardWhere,
   formatDate,
   formatTripDates,
   kindLabel,
@@ -25,9 +28,9 @@ import {
 } from '@/lib/format';
 import { space, useTheme } from '@/lib/theme';
 
-const VIEWS = ['day', 'kind'] as const;
+const VIEWS = ['day', 'kind', 'map'] as const;
 type View_ = (typeof VIEWS)[number];
-const viewLabel: Record<View_, string> = { day: 'By day', kind: 'By kind' };
+const viewLabel: Record<View_, string> = { day: 'By day', kind: 'By kind', map: 'Map' };
 
 export default function TripScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -37,7 +40,7 @@ export default function TripScreen() {
 
   return (
     <TripGate tripId={id}>
-      {({ trip, cards, memberCount, canEdit }) => {
+      {({ trip, cards, places, memberCount, canEdit }) => {
         const plan = cards.filter(isInPlan);
         const addHref = (date?: string | null) =>
           `/trips/${id}/cards/new${date ? `?date=${date}` : ''}` as const;
@@ -68,6 +71,7 @@ export default function TripScreen() {
                     key={card.id}
                     card={card}
                     tripId={id}
+                    places={places}
                     showKind={view === 'day'}
                     showDate={view === 'kind' || date === null}
                     onMoveUp={canEdit && position > 0 ? () => move(position - 1) : undefined}
@@ -120,9 +124,11 @@ export default function TripScreen() {
                 ? groupByDay(plan, trip).map(({ date, cards: list }) =>
                     group(date ?? 'unscheduled', date ? formatDate(date, false) : 'No date yet', list, date),
                   )
-                : groupByKind([...plan].sort(compareByOrder)).map(({ kind, cards: list }) =>
-                    group(kind, kindPlural[kind], list),
-                  )}
+                : view === 'kind'
+                  ? groupByKind([...plan].sort(compareByOrder)).map(({ kind, cards: list }) =>
+                      group(kind, kindPlural[kind], list),
+                    )
+                  : <PlanMap tripId={id} cards={plan} places={places} />}
           </Screen>
         );
       }}
@@ -133,16 +139,19 @@ export default function TripScreen() {
 interface CardTileProps {
   card: TripCard;
   tripId: string;
+  places: readonly Place[];
   showKind: boolean;
   showDate: boolean;
   onMoveUp?: () => void;
   onMoveDown?: () => void;
 }
 
-function CardTile({ card, tripId, showKind, showDate, onMoveUp, onMoveDown }: CardTileProps) {
+function CardTile(props: CardTileProps) {
+  const { card, tripId, places, showKind, showDate, onMoveUp, onMoveDown } = props;
   const theme = useTheme();
   const when = formatCardWhen(card, showDate);
   const details = formatCardDetails(card);
+  const where = formatCardWhere(card, places);
   const tags = [showKind ? kindLabel[card.kind] : null, statusLabel[card.status]].filter(Boolean);
 
   return (
@@ -152,6 +161,7 @@ function CardTile({ card, tripId, showKind, showDate, onMoveUp, onMoveDown }: Ca
           <Text style={[styles.tags, { color: theme.muted }]}>{tags.join(' · ')}</Text>
           <Heading>{card.title}</Heading>
           {when ? <Body>{when}</Body> : null}
+          {where ? <Body>{where}</Body> : null}
           {details ? <Body tone="muted">{details}</Body> : null}
           {card.notes ? (
             <Body tone="muted" numberOfLines={2}>

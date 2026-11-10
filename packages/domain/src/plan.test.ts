@@ -8,6 +8,7 @@ import {
   parseTimeInput,
   planMove,
   sortKeysBetween,
+  stopsOf,
 } from './index';
 
 interface TestCard {
@@ -163,5 +164,50 @@ describe('typed times', () => {
     for (const text of ['', '25:00', '9:75', '13pm', '0pm', 'noon', '9:3', '19:30:00']) {
       expect(parseTimeInput(text), text).toBeNull();
     }
+  });
+});
+
+describe('stops', () => {
+  const place = (id: string) => ({
+    id,
+    trip_id: 't',
+    name: id,
+    lat: 0,
+    lng: 0,
+    address: null,
+    timezone: null,
+    provider: null,
+    provider_place_id: null,
+    created_by: 'u',
+    created_at: '2027-01-01T00:00:00Z',
+    updated_at: '2027-01-01T00:00:00Z',
+  });
+  const at = (id: string, n: number, place_id: string | null, extra = {}) => ({
+    ...card(id, n),
+    place_id,
+    end_place_id: null as string | null,
+    ...extra,
+  });
+
+  it('lists used places in the order the trip reaches them, with their cards', () => {
+    const stops = stopsOf(
+      [
+        at('a', 0, 'cafe', { start_date: '2027-03-15' }),
+        at('b', 1, 'hotel', { start_date: '2027-03-14' }),
+        at('c', 2, 'cafe'),
+        at('d', 3, null),
+        at('e', 4, 'hotel', { start_date: '2027-03-14', start_time: '09:00', end_place_id: 'airport' }),
+      ],
+      [place('cafe'), place('hotel'), place('airport'), place('unused')],
+    );
+    expect(stops.map((s) => [s.place.id, ids(s.cards)])).toEqual([
+      ['hotel', 'eb'],
+      ['airport', 'e'],
+      ['cafe', 'ac'],
+    ]);
+  });
+
+  it('ignores a card whose place is not loaded', () => {
+    expect(stopsOf([at('a', 0, 'gone')], [])).toEqual([]);
   });
 });

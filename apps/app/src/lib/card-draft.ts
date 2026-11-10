@@ -5,6 +5,7 @@ import {
   type CardStatus,
   type Meal,
   parseTimeInput,
+  type Place,
   type TransportMode,
 } from '@plantodo/domain';
 
@@ -17,6 +18,10 @@ export interface CardDraft {
   start_time: string;
   end_date: string | null;
   end_time: string;
+  /** Where it happens; for travel, where it leaves from. */
+  place_id: string | null;
+  /** Travel only: where it arrives. */
+  end_place_id: string | null;
   notes: string;
   url: string;
   confirmation_code: string;
@@ -38,6 +43,8 @@ export function emptyDraft(kind: CardKind, date: string | null): CardDraft {
     start_time: '',
     end_date: null,
     end_time: '',
+    place_id: null,
+    end_place_id: null,
     notes: '',
     url: '',
     confirmation_code: '',
@@ -58,6 +65,8 @@ export function draftFromCard(card: Card): CardDraft {
   draft.start_time = card.start_time?.slice(0, 5) ?? '';
   draft.end_date = card.end_date;
   draft.end_time = card.end_time?.slice(0, 5) ?? '';
+  draft.place_id = card.place_id;
+  draft.end_place_id = card.end_place_id;
   draft.notes = card.notes ?? '';
   draft.url = card.url ?? '';
   if (card.kind !== 'note') draft.confirmation_code = card.details.confirmation_code ?? '';
@@ -122,6 +131,8 @@ interface BuildContext {
   /** The trip's time zone, used for newly scheduled cards. */
   timezone: string;
   sort_key: string;
+  /** The trip's places, for the time zone of the one a card is at. */
+  places: readonly Place[];
   existing?: Card;
 }
 
@@ -148,6 +159,15 @@ export function buildCard(draft: CardDraft, context: BuildContext): BuildResult 
   // An end time alone means "ends the same day".
   const end_date = draft.end_date ?? (end_time ? draft.start_date : null);
 
+  // A card is scheduled in the zone of the place it is at; travel starts in the
+  // zone it leaves from and ends in the zone it arrives in.
+  const zoneOf = (placeId: string | null) =>
+    context.places.find((place) => place.id === placeId)?.timezone ?? null;
+  const end_place_id = draft.kind === 'transport' ? draft.end_place_id : null;
+  const start_tz = zoneOf(draft.place_id) ?? existing?.start_tz ?? context.timezone;
+  const end_tz =
+    zoneOf(end_place_id ?? draft.place_id) ?? existing?.end_tz ?? context.timezone;
+
   const url = draft.url.trim();
   const parsed = CardInsert.safeParse({
     id: context.id,
@@ -156,14 +176,14 @@ export function buildCard(draft: CardDraft, context: BuildContext): BuildResult 
     title: draft.title,
     notes: draft.notes.trim() || null,
     url: url ? (/^https?:\/\//i.test(url) ? url : `https://${url}`) : null,
-    place_id: existing?.place_id ?? null,
-    end_place_id: draft.kind === 'transport' ? (existing?.end_place_id ?? null) : null,
+    place_id: draft.place_id,
+    end_place_id,
     start_date: draft.start_date,
     start_time,
-    start_tz: draft.start_date ? (existing?.start_tz ?? context.timezone) : null,
+    start_tz: draft.start_date ? start_tz : null,
     end_date,
     end_time,
-    end_tz: end_date ? (existing?.end_tz ?? context.timezone) : null,
+    end_tz: end_date ? end_tz : null,
     status: draft.status,
     origin: existing?.origin ?? 'user',
     suggestion_state: existing?.suggestion_state ?? null,

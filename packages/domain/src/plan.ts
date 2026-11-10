@@ -1,4 +1,5 @@
 import { CARD_KINDS, type Card, type CardKind } from './card';
+import type { Place } from './place';
 import type { LocalDate } from './primitives';
 import { compareSortKeys, type SortKey, sortKeyBetween, sortKeysBetween } from './sort-key';
 
@@ -135,4 +136,40 @@ export function planMove(
   return result
     .map((card, i) => ({ id: card.id, sort_key: keys[i]! }))
     .filter((change, i) => change.sort_key !== result[i]!.sort_key);
+}
+
+export interface Stop<C> {
+  place: Place;
+  /** Cards that happen at, leave from or arrive at this place. */
+  cards: C[];
+}
+
+/**
+ * The places a plan actually uses, each with its cards, in the order the trip
+ * reaches them: by day, then within the day, with unscheduled cards last.
+ */
+export function stopsOf<C extends Schedulable & Pick<Card, 'place_id' | 'end_place_id'>>(
+  cards: readonly C[],
+  places: readonly Place[],
+): Stop<C>[] {
+  const byId = new Map(places.map((place) => [place.id, place]));
+  const stops = new Map<string, Stop<C>>();
+  const ordered = [...cards].sort((a, b) => {
+    if (a.start_date !== b.start_date) {
+      if (a.start_date === null) return 1;
+      if (b.start_date === null) return -1;
+      return a.start_date < b.start_date ? -1 : 1;
+    }
+    return compareWithinDay(a, b);
+  });
+  for (const card of ordered) {
+    for (const placeId of [card.place_id, card.end_place_id]) {
+      const place = placeId ? byId.get(placeId) : undefined;
+      if (!place) continue;
+      const stop = stops.get(place.id) ?? { place, cards: [] };
+      if (!stop.cards.includes(card)) stop.cards.push(card);
+      stops.set(place.id, stop);
+    }
+  }
+  return [...stops.values()];
 }

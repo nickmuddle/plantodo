@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { Id, Timestamp } from './primitives';
+import { Id, TimeZone, Timestamp } from './primitives';
 
 export const PLACE_PROVIDERS = ['google', 'mapbox', 'osm'] as const;
 export const PlaceProvider = z.enum(PLACE_PROVIDERS);
@@ -19,6 +19,8 @@ const placeFields = {
   lat: z.number().min(-90).max(90),
   lng: z.number().min(-180).max(180),
   address: z.string().max(500).nullable(),
+  /** The place's own zone, when known. Cards there are scheduled in it. */
+  timezone: TimeZone.nullable(),
   provider: PlaceProvider.nullable(),
   provider_place_id: z.string().min(1).max(500).nullable(),
 };

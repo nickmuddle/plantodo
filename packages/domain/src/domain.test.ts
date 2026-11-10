@@ -195,7 +195,15 @@ describe('trips, places and links', () => {
   });
 
   it('requires a provider and its id together', () => {
-    const place = { id: id(1), trip_id: id(2), name: 'Cafe', lat: 38.7, lng: -9.1, address: null };
+    const place = {
+      id: id(1),
+      trip_id: id(2),
+      name: 'Cafe',
+      lat: 38.7,
+      lng: -9.1,
+      address: null,
+      timezone: null,
+    };
     expect(
       PlaceInsert.safeParse({ ...place, provider: null, provider_place_id: null }).success,
     ).toBe(true);

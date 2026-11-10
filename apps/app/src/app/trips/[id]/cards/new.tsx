@@ -12,11 +12,12 @@ export default function NewCard() {
 
   return (
     <TripGate tripId={params.id}>
-      {({ trip, cards, canEdit }) =>
+      {({ trip, cards, places, canEdit }) =>
         canEdit ? (
           <CardEditor
             trip={trip}
             cards={cards}
+            places={places}
             initialKind={kind.success ? kind.data : undefined}
             initialDate={date.success ? date.data : null}
             readOnly={false}

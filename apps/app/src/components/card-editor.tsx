@@ -5,6 +5,7 @@ import {
   type CardKind,
   MEALS,
   nextSortKey,
+  type Place,
   TRANSPORT_MODES,
   type Trip,
 } from '@plantodo/domain';
@@ -14,6 +15,7 @@ import { useState } from 'react';
 
 import { Choice } from '@/components/choice';
 import { DateField } from '@/components/date-field';
+import { PlaceField } from '@/components/place-field';
 import { Body, Button, Field, Screen } from '@/components/ui';
 import { errorMessage, useCreateCard, useDeleteCard, useUpdateCard } from '@/lib/api';
 import { buildCard, type CardDraft, draftFromCard, emptyDraft } from '@/lib/card-draft';
@@ -24,6 +26,7 @@ interface CardEditorProps {
   trip: Trip;
   /** All of the trip's cards, used to place a new one at the end. */
   cards: Card[];
+  places: Place[];
   /** The card being edited; absent when creating. */
   existing?: Card;
   initialKind?: CardKind;
@@ -33,7 +36,7 @@ interface CardEditorProps {
 }
 
 export function CardEditor(props: CardEditorProps) {
-  const { trip, cards, existing, readOnly } = props;
+  const { trip, cards, places, existing, readOnly } = props;
   const router = useRouter();
   const create = useCreateCard(trip.id);
   const update = useUpdateCard(trip.id);
@@ -61,6 +64,7 @@ export function CardEditor(props: CardEditorProps) {
       trip_id: trip.id,
       timezone: trip.timezone,
       sort_key: existing?.sort_key ?? nextSortKey(cards),
+      places,
       existing,
     });
     if (!built.ok) {
@@ -112,6 +116,25 @@ export function CardEditor(props: CardEditorProps) {
           value={draft.meal}
           onChange={(meal) => set('meal', meal)}
           onClear={() => set('meal', null)}
+          disabled={readOnly}
+        />
+      ) : null}
+
+      <PlaceField
+        label={draft.kind === 'transport' ? 'From' : 'Place'}
+        tripId={trip.id}
+        places={places}
+        value={draft.place_id}
+        onChange={(placeId) => set('place_id', placeId)}
+        disabled={readOnly}
+      />
+      {draft.kind === 'transport' ? (
+        <PlaceField
+          label="To"
+          tripId={trip.id}
+          places={places}
+          value={draft.end_place_id}
+          onChange={(placeId) => set('end_place_id', placeId)}
           disabled={readOnly}
         />
       ) : null}

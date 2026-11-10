@@ -3,6 +3,7 @@ import type {
   CardKind,
   CardStatus,
   Meal,
+  Place,
   TransportMode,
   Trip,
   TripRole,
@@ -127,4 +128,17 @@ export function formatCardDetails(card: Card): string | null {
   }
   const text = parts.filter(Boolean).join(' · ');
   return text || null;
+}
+
+/** Where a card happens: a place name, or "A to B" for travel between two. */
+export function formatCardWhere(
+  card: Pick<Card, 'place_id' | 'end_place_id'>,
+  places: readonly Place[],
+): string | null {
+  const name = (id: string | null) => places.find((place) => place.id === id)?.name;
+  const from = name(card.place_id);
+  const to = name(card.end_place_id);
+  if (from && to) return `${from} to ${to}`;
+  if (to) return `To ${to}`;
+  return from ?? null;
 }

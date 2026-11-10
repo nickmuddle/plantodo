@@ -10,6 +10,7 @@ together out of cards: places to stay, places to eat, things to do, travel and n
 | `apps/app` | The Expo app (one codebase for iOS, Android and web) |
 | `packages/domain` | The trip model as Zod schemas and TypeScript types, shared by app and server |
 | `supabase/migrations` | The Postgres schema and access rules |
+| `supabase/functions` | Server-side functions; `places` is place search |
 | `packages/db` | Tests that run the migrations and check them against the domain package |
 
 ## The model
@@ -61,6 +62,34 @@ pnpm app
 
 Sign-in is by a six-digit code sent by email. Locally no email leaves your
 machine: open the mail viewer at http://127.0.0.1:54324 to read the code.
+
+## Google Maps
+
+Place search and the map use Google Maps Platform, with two separate keys:
+
+| Key | Used for | Where it lives | Restrict it to |
+|---|---|---|---|
+| Server key | Place search (`supabase/functions/places`) | A Supabase secret, never in the app | Places API (New) |
+| Browser key | The map in the web app | `EXPO_PUBLIC_GOOGLE_MAPS_KEY`, visible to users | Maps JavaScript API and your site's address |
+
+Locally, put the server key in `supabase/functions/.env` (not committed) and
+serve the function:
+
+```sh
+echo "GOOGLE_MAPS_SERVER_KEY=your-key" > supabase/functions/.env
+pnpm supabase functions serve --env-file supabase/functions/.env
+```
+
+On a hosted project:
+
+```sh
+pnpm supabase secrets set GOOGLE_MAPS_SERVER_KEY=your-key
+pnpm supabase functions deploy places
+```
+
+Only signed-in users can search. Without the browser key the map view still
+lists the trip's places; it just draws no map. On phones the map view is that
+list, with each place opening in the device's maps app.
 
 ## Pointing at a hosted Supabase project
 

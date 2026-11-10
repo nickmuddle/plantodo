@@ -96,6 +96,7 @@ one trip.
 | `name` | Display name |
 | `lat`, `lng` | Coordinates |
 | `address` | Optional free-text address |
+| `timezone` | The place's own time zone, when the provider supplies it |
 | `provider`, `provider_place_id` | Optional reference to an outside source (`google`, `mapbox`, `osm`); set together or not at all |
 
 When a place comes from a provider, the provider's id is kept so details can be
@@ -141,6 +142,9 @@ later without rewriting existing cards.
 - A date always comes with a time zone. A time is optional ("sometime on Saturday").
 - Start and end each have their own zone, because a flight can leave in one zone
   and land in another.
+- A card takes the zone of its place. Travel starts in the zone of the place it
+  leaves from and ends in the zone of the place it arrives at. A card with no
+  place uses the trip's zone.
 - A card cannot end before it starts. The database compares the two as actual
   instants, so a flight may land earlier on the local clock than it left.
 
@@ -181,7 +185,7 @@ reordering at once therefore do not overwrite each other.
 
 ### How cards are shown
 
-The same cards are arranged in two ways:
+The same cards are arranged in three ways:
 
 - **By day:** grouped by start date, with every day of the trip listed even if
   empty. Within a day, cards with a time come first in time order, then cards
@@ -189,7 +193,10 @@ The same cards are arranged in two ways:
 - **By kind:** grouped as stays, eats, things to do, travel and notes, each in
   manual order.
 
-Pending and dismissed suggestions are left out of both.
+- **Map:** the places the plan uses, numbered in the order the trip reaches
+  them, each with the cards there.
+
+Pending and dismissed suggestions are left out of all three.
 
 ## Card link
 

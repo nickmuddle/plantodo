@@ -1,4 +1,4 @@
-import type { Card, Trip } from '@plantodo/domain';
+import type { Card, Place, Trip } from '@plantodo/domain';
 import { useRouter } from 'expo-router';
 import type { ReactNode } from 'react';
 
@@ -9,6 +9,7 @@ import { useTripAccess } from '@/lib/use-trip-access';
 interface Loaded {
   trip: Trip;
   cards: Card[];
+  places: Place[];
   memberCount: number;
   canEdit: boolean;
 }
@@ -41,6 +42,7 @@ export function TripGate({ tripId, children }: { tripId: string; children: (load
   return children({
     trip: access.trip,
     cards: access.cards,
+    places: access.places,
     memberCount: access.memberCount,
     canEdit: access.canEdit,
   });

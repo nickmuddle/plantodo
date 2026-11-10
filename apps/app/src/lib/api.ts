@@ -3,8 +3,9 @@ import {
   CardInsert,
   type InviteRole,
   InvitePreview,
-  type SortKeyChange,
+  Place,
   Profile,
+  type SortKeyChange,
   Trip,
   TripInsert,
   TripInvite,
@@ -181,6 +182,106 @@ export function useReorderCards(tripId: string) {
       );
     },
     onSettled: () => queryClient.invalidateQueries({ queryKey: cardsKey(tripId) }),
+  });
+}
+
+// --- Places ------------------------------------------------------------------
+
+const placesKey = (tripId: string) => ['trips', tripId, 'places'] as const;
+
+// Everything except the derived `location` column, which only the database uses.
+const PLACE_COLUMNS =
+  'id, trip_id, name, lat, lng, address, timezone, provider, provider_place_id, created_by, created_at, updated_at';
+
+export function usePlaces(tripId: string) {
+  return useQuery({
+    queryKey: placesKey(tripId),
+    queryFn: async () =>
+      z
+        .array(Place)
+        .parse(unwrap(await supabase.from('places').select(PLACE_COLUMNS).eq('trip_id', tripId))),
+  });
+}
+
+const placeSuggestion = z.object({
+  provider_place_id: z.string(),
+  name: z.string(),
+  description: z.string().nullable(),
+});
+export type PlaceSuggestion = z.infer<typeof placeSuggestion>;
+
+const FoundPlace = z.object({
+  provider_place_id: z.string(),
+  name: z.string(),
+  address: z.string().nullable(),
+  lat: z.number(),
+  lng: z.number(),
+  timezone: z.string().nullable(),
+});
+
+/** Calls the place-search function, surfacing the message it returns on failure. */
+async function callPlaces(body: Record<string, unknown>): Promise<unknown> {
+  const { data, error } = await supabase.functions.invoke('places', { body });
+  if (error) {
+    const detail = await (error as { context?: Response }).context
+      ?.json()
+      .catch(() => null);
+    throw new Error(detail?.error ?? 'Place search is unavailable');
+  }
+  return data;
+}
+
+export interface PlaceSearch {
+  input: string;
+  /** Groups the keystrokes of one search, which is how the provider bills. */
+  sessionToken: string;
+  near?: { lat: number; lng: number };
+}
+
+export async function searchPlaces(search: PlaceSearch): Promise<PlaceSuggestion[]> {
+  const data = await callPlaces({ action: 'autocomplete', ...search });
+  return z.object({ suggestions: z.array(placeSuggestion) }).parse(data).suggestions;
+}
+
+/** Looks up a suggestion's details and saves it as one of the trip's places. */
+export function useAddPlace(tripId: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (pick: { providerPlaceId: string; sessionToken: string }) => {
+      const data = await callPlaces({
+        action: 'details',
+        placeId: pick.providerPlaceId,
+        sessionToken: pick.sessionToken,
+      });
+      const found = z.object({ place: FoundPlace }).parse(data).place;
+      // If the trip already has this place, this refreshes it and reuses the row.
+      const row = unwrap(
+        await supabase
+          .from('places')
+          .upsert(
+            {
+              trip_id: tripId,
+              provider: 'google',
+              provider_place_id: found.provider_place_id,
+              name: found.name.slice(0, 200),
+              address: found.address?.slice(0, 500) ?? null,
+              lat: found.lat,
+              lng: found.lng,
+              timezone: found.timezone,
+            },
+            { onConflict: 'trip_id,provider,provider_place_id' },
+          )
+          .select(PLACE_COLUMNS)
+          .single(),
+      );
+      return Place.parse(row);
+    },
+    onSuccess: (place) => {
+      queryClient.setQueryData<Place[]>(placesKey(tripId), (places) => [
+        ...(places ?? []).filter((existing) => existing.id !== place.id),
+        place,
+      ]);
+    },
   });
 }
 

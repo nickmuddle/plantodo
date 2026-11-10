@@ -79,7 +79,7 @@ describe.skipIf(!adminUrl)('database schema', () => {
         const [hotel] = await query(
           `insert into places (trip_id, name, lat, lng, provider, provider_place_id)
            values ($1, 'Hotel', 38.7139, -9.1394, 'google', 'abc') returning
-           id, trip_id, name, lat, lng, address, provider, provider_place_id,
+           id, trip_id, name, lat, lng, address, timezone, provider, provider_place_id,
            created_by, created_at, updated_at`,
           [tripId],
         );
