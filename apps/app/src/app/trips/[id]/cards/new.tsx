@@ -1,4 +1,4 @@
-import { CardKind, LocalDate } from '@plantodotdo/domain';
+import { CardKind, LocalDate } from '@plantodo/domain';
 import { useLocalSearchParams } from 'expo-router';
 
 import { CardEditor } from '@/components/card-editor';

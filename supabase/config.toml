@@ -3,7 +3,7 @@
 # https://supabase.com/docs/guides/local-development/cli/config
 # A string used to distinguish different Supabase projects on the same host. Defaults to the
 # working directory name when running `supabase init`.
-project_id = "plantodotdo"
+project_id = "plantodo"
 
 [api]
 enabled = true
@@ -222,11 +222,11 @@ web3 = 30
 # when signing in carry the code rather than a link. A hosted project needs the
 # same templates set in its dashboard (Authentication > Emails).
 [auth.email.template.magic_link]
-subject = "Your Plantodotdo sign-in code"
+subject = "Your Plantodo sign-in code"
 content_path = "./supabase/templates/sign-in-code.html"
 
 [auth.email.template.confirmation]
-subject = "Your Plantodotdo sign-in code"
+subject = "Your Plantodo sign-in code"
 content_path = "./supabase/templates/sign-in-code.html"
 
 [auth.email]

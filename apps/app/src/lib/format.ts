@@ -6,7 +6,7 @@ import type {
   TransportMode,
   Trip,
   TripRole,
-} from '@plantodotdo/domain';
+} from '@plantodo/domain';
 
 /** `2027-03-14` as "Sun 14 Mar 2027", in the reader's language. */
 export function formatDate(date: string, withYear = true): string {

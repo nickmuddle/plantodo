@@ -72,7 +72,7 @@ export default function SignIn() {
 
   return (
     <Screen>
-      <Title>Plantodotdo</Title>
+      <Title>Plantodo</Title>
       <Body>Plan trips together. Enter your email and we’ll send you a code to sign in.</Body>
       <Field
         label="Email"

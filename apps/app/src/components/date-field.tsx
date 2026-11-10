@@ -1,4 +1,4 @@
-import { addDays } from '@plantodotdo/domain';
+import { addDays } from '@plantodo/domain';
 import { useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 

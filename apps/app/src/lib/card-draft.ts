@@ -6,7 +6,7 @@ import {
   type Meal,
   parseTimeInput,
   type TransportMode,
-} from '@plantodotdo/domain';
+} from '@plantodo/domain';
 
 /** The card form's state: every field as the person typed it. */
 export interface CardDraft {

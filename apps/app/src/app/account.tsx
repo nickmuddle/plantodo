@@ -1,4 +1,4 @@
-import { DisplayName } from '@plantodotdo/domain';
+import { DisplayName } from '@plantodo/domain';
 import { useState } from 'react';
 
 import { Body, Button, Card, Field, Loading, Screen } from '@/components/ui';

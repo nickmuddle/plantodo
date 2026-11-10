@@ -1,4 +1,4 @@
-import { canEdit } from '@plantodotdo/domain';
+import { canEdit } from '@plantodo/domain';
 
 import { useCards, useMembers, useTrip } from './api';
 import { useUserId } from './session';

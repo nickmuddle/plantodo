@@ -14,7 +14,7 @@ import {
   Trip,
   TRIP_ROLES,
   TripMember,
-} from '@plantodotdo/domain';
+} from '@plantodo/domain';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { adminUrl, createTestDb, type Query, type TestDb } from './harness';
 

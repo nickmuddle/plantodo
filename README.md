@@ -1,4 +1,4 @@
-# Plantodotdo
+# Plantodo
 
 Collaborative trip planning for web, Android and iOS. People build an itinerary
 together out of cards: places to stay, places to eat, things to do, travel and notes.

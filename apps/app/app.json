@@ -1,11 +1,11 @@
 {
   "expo": {
-    "name": "Plantodotdo",
-    "slug": "plantodotdo",
+    "name": "Plantodo",
+    "slug": "plantodo",
     "version": "0.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
-    "scheme": "plantodotdo",
+    "scheme": "plantodo",
     "userInterfaceStyle": "automatic",
     "ios": {
       "icon": "./assets/expo.icon"

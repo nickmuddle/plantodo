@@ -10,7 +10,7 @@ import {
   TripInvite,
   TripMember,
   type TripRole,
-} from '@plantodotdo/domain';
+} from '@plantodo/domain';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import * as Crypto from 'expo-crypto';
 import { z } from 'zod';

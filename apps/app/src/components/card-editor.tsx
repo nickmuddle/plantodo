@@ -7,7 +7,7 @@ import {
   nextSortKey,
   TRANSPORT_MODES,
   type Trip,
-} from '@plantodotdo/domain';
+} from '@plantodo/domain';
 import * as Crypto from 'expo-crypto';
 import { useRouter } from 'expo-router';
 import { useState } from 'react';

@@ -5,7 +5,7 @@ import {
   groupByKind,
   isInPlan,
   planMove,
-} from '@plantodotdo/domain';
+} from '@plantodo/domain';
 import { Link, Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';

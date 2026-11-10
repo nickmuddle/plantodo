@@ -1,4 +1,4 @@
-import type { TripInvite } from '@plantodotdo/domain';
+import type { TripInvite } from '@plantodo/domain';
 import * as Clipboard from 'expo-clipboard';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useState } from 'react';

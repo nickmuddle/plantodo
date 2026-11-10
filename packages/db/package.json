@@ -1,5 +1,5 @@
 {
-  "name": "@plantodotdo/db",
+  "name": "@plantodo/db",
   "version": "0.0.0",
   "private": true,
   "type": "module",
@@ -8,7 +8,7 @@
     "test": "vitest run"
   },
   "dependencies": {
-    "@plantodotdo/domain": "workspace:*"
+    "@plantodo/domain": "workspace:*"
   },
   "devDependencies": {
     "@types/node": "^22.0.0",

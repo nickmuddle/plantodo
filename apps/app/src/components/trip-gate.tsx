@@ -1,4 +1,4 @@
-import type { Card, Trip } from '@plantodotdo/domain';
+import type { Card, Trip } from '@plantodo/domain';
 import { useRouter } from 'expo-router';
 import type { ReactNode } from 'react';
 

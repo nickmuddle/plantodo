@@ -32,7 +32,7 @@ export type Query = <Row extends pg.QueryResultRow = pg.QueryResultRow>(
 
 export async function createTestDb(): Promise<TestDb> {
   if (!adminUrl) throw new Error('DATABASE_URL is not set');
-  const name = `plantodotdo_test_${randomUUID().replaceAll('-', '')}`;
+  const name = `plantodo_test_${randomUUID().replaceAll('-', '')}`;
 
   const server = new pg.Client({ connectionString: adminUrl });
   await server.connect();

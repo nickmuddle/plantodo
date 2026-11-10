@@ -4,7 +4,7 @@ import {
   isInviteLive,
   Profile,
   TripInvite,
-} from '@plantodotdo/domain';
+} from '@plantodo/domain';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { adminUrl, createTestDb, type TestDb } from './harness';
 
