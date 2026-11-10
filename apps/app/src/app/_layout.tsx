@@ -45,7 +45,10 @@ function Screens() {
       <Stack.Protected guard={signedIn}>
         <Stack.Screen name="index" options={{ title: 'Trips' }} />
         <Stack.Screen name="trips/new" options={{ title: 'New trip' }} />
-        <Stack.Screen name="trips/[id]" options={{ title: 'Trip' }} />
+        <Stack.Screen name="trips/[id]/index" options={{ title: 'Trip' }} />
+        <Stack.Screen name="trips/[id]/people" options={{ title: 'People' }} />
+        <Stack.Screen name="trips/[id]/cards/new" options={{ title: 'New card' }} />
+        <Stack.Screen name="trips/[id]/cards/[cardId]" options={{ title: 'Card' }} />
         <Stack.Screen name="account" options={{ title: 'Account' }} />
       </Stack.Protected>
       <Stack.Protected guard={!signedIn}>

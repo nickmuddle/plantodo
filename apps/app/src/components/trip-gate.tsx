@@ -1,0 +1,47 @@
+import type { Card, Trip } from '@plantodotdo/domain';
+import { useRouter } from 'expo-router';
+import type { ReactNode } from 'react';
+
+import { Body, Button, Loading, Screen, Title } from '@/components/ui';
+import { errorMessage } from '@/lib/api';
+import { useTripAccess } from '@/lib/use-trip-access';
+
+interface Loaded {
+  trip: Trip;
+  cards: Card[];
+  memberCount: number;
+  canEdit: boolean;
+}
+
+/** Loads a trip and handles loading, failure and "not a member" for its screens. */
+export function TripGate({ tripId, children }: { tripId: string; children: (loaded: Loaded) => ReactNode }) {
+  const router = useRouter();
+  const access = useTripAccess(tripId);
+
+  if (access.isPending) return <Loading />;
+
+  if (access.error) {
+    return (
+      <Screen>
+        <Body tone="danger">{errorMessage(access.error)}</Body>
+      </Screen>
+    );
+  }
+
+  if (!access.trip) {
+    return (
+      <Screen>
+        <Title>Trip not found</Title>
+        <Body tone="muted">It may have been deleted, or you may not be a member.</Body>
+        <Button label="Back to trips" onPress={() => router.replace('/')} />
+      </Screen>
+    );
+  }
+
+  return children({
+    trip: access.trip,
+    cards: access.cards,
+    memberCount: access.memberCount,
+    canEdit: access.canEdit,
+  });
+}

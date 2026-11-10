@@ -1,6 +1,9 @@
 import {
+  Card,
+  CardInsert,
   type InviteRole,
   InvitePreview,
+  type SortKeyChange,
   Profile,
   Trip,
   TripInsert,
@@ -72,6 +75,112 @@ export function useCreateTrip() {
       return trip;
     },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['trips'] }),
+  });
+}
+
+// --- Cards -------------------------------------------------------------------
+
+const cardsKey = (tripId: string) => ['trips', tripId, 'cards'] as const;
+
+export function useCards(tripId: string) {
+  return useQuery({
+    queryKey: cardsKey(tripId),
+    queryFn: async (): Promise<Card[]> => {
+      const rows: unknown[] =
+        unwrap(
+          await supabase.from('cards').select('*').eq('trip_id', tripId).order('sort_key'),
+        ) ?? [];
+      // A card this version of the app cannot read (say, written by a newer
+      // version) is skipped rather than breaking the whole plan.
+      return rows.flatMap((row) => {
+        const parsed = Card.safeParse(row);
+        if (!parsed.success) console.warn('Skipping unreadable card', parsed.error.issues);
+        return parsed.success ? [parsed.data] : [];
+      });
+    },
+  });
+}
+
+export function useCreateCard(tripId: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (card: CardInsert) => {
+      const row: Record<string, unknown> = CardInsert.parse(card);
+      unwrap(await supabase.from('cards').insert(row));
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: cardsKey(tripId) }),
+  });
+}
+
+/** Columns a client may change on an existing card. */
+const EDITABLE = [
+  'kind',
+  'title',
+  'notes',
+  'url',
+  'place_id',
+  'end_place_id',
+  'start_date',
+  'start_time',
+  'start_tz',
+  'end_date',
+  'end_time',
+  'end_tz',
+  'status',
+  'details',
+] as const satisfies readonly (keyof CardInsert)[];
+
+export function useUpdateCard(tripId: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ before, after }: { before: Card; after: CardInsert }) => {
+      const next = CardInsert.parse(after);
+      // Send only what changed, so two people editing different fields of the
+      // same card do not overwrite each other.
+      const patch: Record<string, unknown> = {};
+      for (const column of EDITABLE) {
+        if (JSON.stringify(next[column]) !== JSON.stringify(before[column])) {
+          patch[column] = next[column];
+        }
+      }
+      if (Object.keys(patch).length === 0) return;
+      unwrap(await supabase.from('cards').update(patch).eq('id', before.id));
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: cardsKey(tripId) }),
+  });
+}
+
+export function useDeleteCard(tripId: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (cardId: string) => {
+      unwrap(await supabase.from('cards').delete().eq('id', cardId));
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: cardsKey(tripId) }),
+  });
+}
+
+/** Applies new sort keys. The list updates at once and is corrected if a write fails. */
+export function useReorderCards(tripId: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (changes: SortKeyChange[]) => {
+      for (const change of changes) {
+        unwrap(
+          await supabase.from('cards').update({ sort_key: change.sort_key }).eq('id', change.id),
+        );
+      }
+    },
+    onMutate: async (changes) => {
+      await queryClient.cancelQueries({ queryKey: cardsKey(tripId) });
+      const keys = new Map(changes.map((change) => [change.id, change.sort_key]));
+      queryClient.setQueryData<Card[]>(cardsKey(tripId), (cards) =>
+        cards?.map((card) =>
+          keys.has(card.id) ? { ...card, sort_key: keys.get(card.id)! } : card,
+        ),
+      );
+    },
+    onSettled: () => queryClient.invalidateQueries({ queryKey: cardsKey(tripId) }),
   });
 }
 

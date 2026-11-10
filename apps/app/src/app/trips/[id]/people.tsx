@@ -1,10 +1,10 @@
-import { canEdit, type TripInvite } from '@plantodotdo/domain';
+import type { TripInvite } from '@plantodotdo/domain';
 import * as Clipboard from 'expo-clipboard';
-import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useState } from 'react';
 import { Platform, Share } from 'react-native';
 
-import { Body, Button, Card, Heading, Loading, Row, Screen, Title } from '@/components/ui';
+import { Body, Button, Card, Heading, Loading, Row, Screen } from '@/components/ui';
 import {
   errorMessage,
   type Member,
@@ -14,59 +14,33 @@ import {
   useRemoveMember,
   useRevokeInvite,
   useSetMemberRole,
-  useTrip,
 } from '@/lib/api';
 import { confirm } from '@/lib/confirm';
-import { formatExpiry, formatTripDates, roleLabel } from '@/lib/format';
+import { formatExpiry, roleLabel } from '@/lib/format';
 import { inviteUrl } from '@/lib/links';
 import { useUserId } from '@/lib/session';
 
-export default function TripScreen() {
+export default function People() {
   const { id } = useLocalSearchParams<{ id: string }>();
-  const router = useRouter();
   const userId = useUserId();
-  const trip = useTrip(id);
   const members = useMembers(id);
 
-  if (trip.isPending || members.isPending) return <Loading />;
+  if (members.isPending) return <Loading />;
 
-  if (trip.isError || members.isError) {
+  if (members.isError) {
     return (
       <Screen>
-        <Body tone="danger">{errorMessage(trip.error ?? members.error)}</Body>
+        <Body tone="danger">{errorMessage(members.error)}</Body>
       </Screen>
     );
   }
 
-  if (!trip.data) {
-    return (
-      <Screen>
-        <Title>Trip not found</Title>
-        <Body tone="muted">It may have been deleted, or you may not be a member.</Body>
-        <Button label="Back to trips" onPress={() => router.replace('/')} />
-      </Screen>
-    );
-  }
-
-  const myRole = members.data.find((m) => m.user_id === userId)?.role ?? 'viewer';
+  const isOwner = members.data.some((m) => m.user_id === userId && m.role === 'owner');
 
   return (
     <Screen>
-      <Stack.Screen options={{ title: trip.data.title }} />
-      <Title>{trip.data.title}</Title>
-      <Body tone="muted">{formatTripDates(trip.data)}</Body>
-
-      <Card>
-        <Heading>Plan</Heading>
-        <Body tone="muted">
-          {canEdit(myRole)
-            ? 'Cards for places to stay, eat and visit will appear here.'
-            : 'You can view this trip. Cards will appear here.'}
-        </Body>
-      </Card>
-
-      <Members tripId={id} members={members.data} userId={userId} isOwner={myRole === 'owner'} />
-      {myRole === 'owner' ? <Invites tripId={id} /> : null}
+      <Members tripId={id} members={members.data} userId={userId} isOwner={isOwner} />
+      {isOwner ? <Invites tripId={id} /> : null}
     </Screen>
   );
 }

@@ -179,6 +179,18 @@ Cards are ordered by `sort_key`, a fractional index. Moving a card writes one
 new key that sorts between its new neighbours; no other card changes. Two people
 reordering at once therefore do not overwrite each other.
 
+### How cards are shown
+
+The same cards are arranged in two ways:
+
+- **By day:** grouped by start date, with every day of the trip listed even if
+  empty. Within a day, cards with a time come first in time order, then cards
+  without a time in manual order. Cards with no date form a final group.
+- **By kind:** grouped as stays, eats, things to do, travel and notes, each in
+  manual order.
+
+Pending and dismissed suggestions are left out of both.
+
 ## Card link
 
 A typed, directed relation between two cards in the same trip, read as

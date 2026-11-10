@@ -62,9 +62,12 @@ interface ButtonProps {
   disabled?: boolean;
   busy?: boolean;
   compact?: boolean;
+  /** Spoken name, when the visible label alone is ambiguous. */
+  accessibilityLabel?: string;
 }
 
-export function Button({ label, onPress, variant = 'primary', disabled, busy, compact }: ButtonProps) {
+export function Button(props: ButtonProps) {
+  const { label, onPress, variant = 'primary', disabled, busy, compact, accessibilityLabel } = props;
   const theme = useTheme();
   const filled = variant === 'primary';
   const color = filled ? theme.onPrimary : variant === 'danger' ? theme.danger : theme.text;
@@ -72,6 +75,7 @@ export function Button({ label, onPress, variant = 'primary', disabled, busy, co
   return (
     <Pressable
       accessibilityRole="button"
+      accessibilityLabel={accessibilityLabel}
       accessibilityState={{ disabled: inactive, busy }}
       disabled={inactive}
       onPress={onPress}
