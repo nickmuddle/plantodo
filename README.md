@@ -48,7 +48,30 @@ docker run -d -p 5432:5432 -e POSTGRES_PASSWORD=postgres postgis/postgis:17-3.5
 DATABASE_URL=postgres://postgres:postgres@localhost:5432/postgres pnpm test
 ```
 
-To run the full backend locally, use the Supabase CLI: `npx supabase start`.
+## Running the app against a local backend
+
+The Supabase CLI runs the database, sign-in service and data API in Docker:
+
+```sh
+pnpm supabase start                    # applies everything in supabase/migrations
+pnpm supabase status                   # prints the API URL and publishable key
+cp apps/app/.env.example apps/app/.env.local   # then paste those two values in
+pnpm app
+```
+
+Sign-in is by a six-digit code sent by email. Locally no email leaves your
+machine: open the mail viewer at http://127.0.0.1:54324 to read the code.
+
+## Pointing at a hosted Supabase project
+
+1. `pnpm supabase link` and `pnpm supabase db push` to apply the migrations.
+2. Put the project's URL and publishable key in `apps/app/.env.local`.
+3. In the dashboard, under Authentication > Emails, set the "Magic Link" and
+   "Confirm signup" templates to the contents of
+   `supabase/templates/sign-in-code.html`. Without this, sign-in emails contain
+   a link and no code, and nobody can sign in.
+4. Set `EXPO_PUBLIC_APP_URL` to the public web address of the app so invite
+   links point at it.
 
 ## Changing the model
 

@@ -15,7 +15,11 @@ create schema extensions;
 create schema auth;
 grant usage on schema public, extensions, auth to anon, authenticated;
 
-create table auth.users (id uuid primary key);
+create table auth.users (
+  id uuid primary key,
+  email text,
+  raw_user_meta_data jsonb
+);
 
 create function auth.uid() returns uuid language sql stable as $$
   select (nullif(current_setting('request.jwt.claims', true), '')::jsonb ->> 'sub')::uuid

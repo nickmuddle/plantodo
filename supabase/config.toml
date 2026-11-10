@@ -218,6 +218,17 @@ web3 = 30
 # provider = "hcaptcha"
 # secret = ""
 
+# Sign-in is by a one-time code sent by email, so both emails a person can get
+# when signing in carry the code rather than a link. A hosted project needs the
+# same templates set in its dashboard (Authentication > Emails).
+[auth.email.template.magic_link]
+subject = "Your Plantodotdo sign-in code"
+content_path = "./supabase/templates/sign-in-code.html"
+
+[auth.email.template.confirmation]
+subject = "Your Plantodotdo sign-in code"
+content_path = "./supabase/templates/sign-in-code.html"
+
 [auth.email]
 # Allow/disallow the email provider. When false, users can't sign up or sign in with email.
 # To block new signups only, set enable_signup = false under [auth] instead.

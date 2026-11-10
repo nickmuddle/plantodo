@@ -5,13 +5,16 @@ truth: schemas in `packages/domain/src`, tables in `supabase/migrations`.
 
 ## Overview
 
-A **trip** has **members**, **places** and **cards**. A card is one intention in
+A **trip** has **members**, **places** and **cards**. People join through
+**invites**, and each person has a **profile**. A card is one intention in
 the plan ("stay here", "eat there", "get from A to B"). A card may point at a
 place. **Links** connect cards to each other.
 
 ```mermaid
 erDiagram
     TRIP ||--o{ TRIP_MEMBER : "has"
+    TRIP ||--o{ TRIP_INVITE : "has"
+    PROFILE ||--o{ TRIP_MEMBER : "is"
     TRIP ||--o{ PLACE : "contains"
     TRIP ||--o{ CARD : "contains"
     TRIP ||--o{ CARD_LINK : "contains"
@@ -53,7 +56,35 @@ A user's role in one trip.
 | `editor` | Yes | Yes | No | No |
 | `viewer` | Yes | No | No | No |
 
-Any member can remove themselves. Non-members see nothing.
+Any member can remove themselves, except that a trip always keeps at least one
+owner: the last owner cannot leave or step down. Non-members see nothing.
+
+## Profile
+
+How a user appears to others. Created automatically when someone first signs in.
+
+| Field | Meaning |
+|---|---|
+| `display_name` | Starts as the part of their email before the @; theirs to change |
+
+A profile is visible to its owner and to people who share a trip with them.
+
+## Trip invite
+
+A shareable link into a trip.
+
+| Field | Meaning |
+|---|---|
+| `token` | The secret in the link |
+| `role` | What the joiner becomes: `editor` or `viewer`, never `owner` |
+| `expires_at` | Seven days after creation by default |
+| `revoked_at` | Set when an owner turns the link off |
+
+- Owners create, see and revoke invites.
+- A link can be used by any number of people until it expires or is revoked.
+- Anyone holding a link can see the trip's title and who invited them before
+  signing in; joining requires signing in.
+- Someone who is already a member keeps their current role.
 
 ## Place
 

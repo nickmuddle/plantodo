@@ -4,6 +4,9 @@ import {
   CardInsert,
   CardLinkInsert,
   compareSortKeys,
+  DisplayName,
+  InviteRole,
+  isInviteLive,
   isInPlan,
   LocalTime,
   PlaceInsert,
@@ -209,5 +212,25 @@ describe('trips, places and links', () => {
     const link = { id: id(1), trip_id: id(2), from_card_id: id(3), relation: 'arrives_at' };
     expect(CardLinkInsert.safeParse({ ...link, to_card_id: id(4) }).success).toBe(true);
     expect(CardLinkInsert.safeParse({ ...link, to_card_id: id(3) }).success).toBe(false);
+  });
+});
+
+describe('profiles and invites', () => {
+  it('trims display names and rejects empty ones', () => {
+    expect(DisplayName.parse('  Olivia ')).toBe('Olivia');
+    expect(DisplayName.safeParse('   ').success).toBe(false);
+  });
+
+  it('treats an invite as live until it expires or is revoked', () => {
+    const now = new Date('2027-01-10T12:00:00Z');
+    const live = { expires_at: '2027-01-11T12:00:00+00:00', revoked_at: null };
+    expect(isInviteLive(live, now)).toBe(true);
+    expect(isInviteLive({ ...live, expires_at: '2027-01-10T11:59:00+00:00' }, now)).toBe(false);
+    expect(isInviteLive({ ...live, revoked_at: '2027-01-10T09:00:00+00:00' }, now)).toBe(false);
+  });
+
+  it('never offers ownership through an invite', () => {
+    expect(InviteRole.safeParse('editor').success).toBe(true);
+    expect(InviteRole.safeParse('owner').success).toBe(false);
   });
 });

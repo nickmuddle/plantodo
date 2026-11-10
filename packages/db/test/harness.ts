@@ -16,9 +16,12 @@ pg.types.setTypeParser(pg.types.builtins.TIMESTAMPTZ, (value) =>
 
 export interface TestDb {
   admin: pg.Client;
-  /** Run statements as a signed-in user, inside a transaction that is rolled back on error. */
-  as<T>(userId: string, run: (query: Query) => Promise<T>): Promise<T>;
-  newUser(): Promise<string>;
+  /**
+   * Run statements as a signed-in user (or, with `null`, as a signed-out
+   * visitor), inside a transaction that is rolled back on error.
+   */
+  as<T>(userId: string | null, run: (query: Query) => Promise<T>): Promise<T>;
+  newUser(email?: string | null): Promise<string>;
   close(): Promise<void>;
 }
 
@@ -62,9 +65,9 @@ export async function createTestDb(): Promise<TestDb> {
       await admin.query('begin');
       try {
         await admin.query(`select set_config('request.jwt.claims', $1, true)`, [
-          JSON.stringify({ sub: userId, role: 'authenticated' }),
+          userId ? JSON.stringify({ sub: userId, role: 'authenticated' }) : '',
         ]);
-        await admin.query('set local role authenticated');
+        await admin.query(`set local role ${userId ? 'authenticated' : 'anon'}`);
         const result = await run(async (sql, params) => (await admin.query(sql, params)).rows);
         await admin.query('commit');
         return result;
@@ -73,9 +76,9 @@ export async function createTestDb(): Promise<TestDb> {
         throw error;
       }
     },
-    async newUser() {
+    async newUser(email = null) {
       const id = randomUUID();
-      await admin.query('insert into auth.users (id) values ($1)', [id]);
+      await admin.query('insert into auth.users (id, email) values ($1, $2)', [id, email]);
       return id;
     },
     close: drop,

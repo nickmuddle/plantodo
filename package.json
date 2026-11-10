@@ -2,11 +2,16 @@
   "name": "plantodotdo",
   "private": true,
   "packageManager": "pnpm@10.28.0",
-  "engines": { "node": ">=22" },
+  "engines": {
+    "node": ">=22"
+  },
   "scripts": {
     "typecheck": "pnpm -r typecheck",
     "lint": "pnpm -r lint",
     "test": "pnpm -r test",
     "app": "pnpm --filter @plantodotdo/app start"
+  },
+  "devDependencies": {
+    "supabase": "3.1.0"
   }
 }
