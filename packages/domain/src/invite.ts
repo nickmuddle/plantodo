@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { Id, Timestamp } from './primitives';
+import { Id, Timestamp } from './primitives.ts';
 
 /** Invites never grant ownership; an owner promotes a member afterwards. */
 export const INVITE_ROLES = ['editor', 'viewer'] as const;

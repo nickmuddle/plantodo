@@ -10,7 +10,7 @@ together out of cards: places to stay, places to eat, things to do, travel and n
 | `apps/app` | The Expo app (one codebase for iOS, Android and web) |
 | `packages/domain` | The trip model as Zod schemas and TypeScript types, shared by app and server |
 | `supabase/migrations` | The Postgres schema and access rules |
-| `supabase/functions` | Server-side functions; `places` is place search |
+| `supabase/functions` | Server-side functions: `places` (place search) and `import-itinerary` (pasted plans to draft cards) |
 | `packages/db` | Tests that run the migrations and check them against the domain package |
 
 ## The model
@@ -90,6 +90,42 @@ pnpm supabase functions deploy places
 Only signed-in users can search. Without the browser key the map view still
 lists the trip's places; it just draws no map. On phones the map view is that
 list, with each place opening in the device's maps app.
+
+## Itinerary import
+
+An editor pastes a plan (from ChatGPT, Gemini, Claude or anywhere), reviews the
+draft cards and adds the ones they want. `supabase/functions/import-itinerary`
+sends the text to a Claude model and returns drafts; the app writes nothing
+until the person confirms. See the Import section of `docs/ontology.md`.
+
+| Setting | Where | Notes |
+|---|---|---|
+| `ANTHROPIC_API_KEY` | A Supabase secret, never in the app | Required |
+| `IMPORT_MODEL` | A Supabase secret | Optional. Defaults to `claude-haiku-5-5` |
+
+Locally, add the key to `supabase/functions/.env` (not committed) next to the
+Google key, and serve the functions:
+
+```sh
+echo "ANTHROPIC_API_KEY=your-key" >> supabase/functions/.env
+pnpm supabase functions serve --env-file supabase/functions/.env
+```
+
+On a hosted project:
+
+```sh
+pnpm supabase secrets set ANTHROPIC_API_KEY=your-key
+pnpm supabase functions deploy import-itinerary
+```
+
+Limits: 20,000 characters per import, 10 imports per person in any 24 hours, and
+at most 25 place lookups per import. Each run is recorded in `import_runs`
+(sizes and counts only). The pasted text is sent to the model and is neither
+stored nor logged.
+
+The function imports `packages/domain` directly, through the import map in its
+`deno.json`. That is why relative imports inside `packages/domain/src` carry a
+`.ts` extension: the functions runtime does not resolve them without one.
 
 ## Pointing at a hosted Supabase project
 

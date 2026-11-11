@@ -9,7 +9,7 @@ import {
   planMove,
   sortKeysBetween,
   stopsOf,
-} from './index';
+} from './index.ts';
 
 interface TestCard {
   id: string;

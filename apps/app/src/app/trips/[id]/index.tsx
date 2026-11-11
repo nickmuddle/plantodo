@@ -101,14 +101,28 @@ export default function TripScreen() {
               />
             </Row>
 
-            {canEdit ? <Button label="Add card" onPress={() => router.push(addHref())} /> : null}
+            {canEdit ? (
+              // On an empty trip, importing a plan is the quickest way to start.
+              <View style={{ gap: space.sm, flexDirection: plan.length === 0 ? 'column-reverse' : 'column' }}>
+                <Button
+                  label="Add card"
+                  variant={plan.length === 0 ? 'secondary' : 'primary'}
+                  onPress={() => router.push(addHref())}
+                />
+                <Button
+                  label="Import itinerary"
+                  variant={plan.length === 0 ? 'primary' : 'secondary'}
+                  onPress={() => router.push(`/trips/${id}/import`)}
+                />
+              </View>
+            ) : null}
 
             {plan.length === 0 ? (
               <Card>
                 <Heading>Nothing here yet</Heading>
                 <Body tone="muted">
                   {canEdit
-                    ? 'Add places to stay, places to eat, things to do and how you’ll get around.'
+                    ? 'Paste a plan you already have, or add places to stay, places to eat, things to do and how you’ll get around.'
                     : 'Cards will appear here as people add them.'}
                 </Body>
               </Card>

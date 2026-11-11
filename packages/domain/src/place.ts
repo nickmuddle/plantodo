@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { Id, TimeZone, Timestamp } from './primitives';
+import { Id, TimeZone, Timestamp } from './primitives.ts';
 
 export const PLACE_PROVIDERS = ['google', 'mapbox', 'osm'] as const;
 export const PlaceProvider = z.enum(PLACE_PROVIDERS);

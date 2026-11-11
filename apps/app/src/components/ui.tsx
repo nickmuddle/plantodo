@@ -116,6 +116,30 @@ export function Field({ label, hint, ...props }: TextInputProps & { label: strin
   );
 }
 
+export function Checkbox(props: { checked: boolean; onChange: (checked: boolean) => void; label: string }) {
+  const { checked, onChange, label } = props;
+  const theme = useTheme();
+  return (
+    <Pressable
+      accessibilityRole="checkbox"
+      accessibilityLabel={label}
+      accessibilityState={{ checked }}
+      onPress={() => onChange(!checked)}
+      style={styles.checkboxTarget}>
+      <View
+        style={[
+          styles.checkbox,
+          {
+            borderColor: checked ? theme.primary : theme.muted,
+            backgroundColor: checked ? theme.primary : 'transparent',
+          },
+        ]}>
+        {checked ? <Text style={[styles.checkmark, { color: theme.onPrimary }]}>✓</Text> : null}
+      </View>
+    </Pressable>
+  );
+}
+
 export function Row({ style, ...props }: ViewProps) {
   return <View style={[styles.row, style]} {...props} />;
 }
@@ -157,5 +181,15 @@ const styles = StyleSheet.create({
     fontSize: 16,
   },
   row: { flexDirection: 'row', alignItems: 'center', gap: space.sm, flexWrap: 'wrap' },
+  checkboxTarget: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
+  checkbox: {
+    width: 24,
+    height: 24,
+    borderRadius: 6,
+    borderWidth: 2,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  checkmark: { fontSize: 16, fontWeight: '700', lineHeight: 18 },
   centered: { flex: 1, alignItems: 'center', justifyContent: 'center' },
 });

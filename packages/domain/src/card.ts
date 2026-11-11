@@ -1,6 +1,6 @@
 import { z } from 'zod';
-import { Id, LocalDate, LocalTime, TimeZone, Timestamp, Url } from './primitives';
-import { SortKey } from './sort-key';
+import { Id, LocalDate, LocalTime, TimeZone, Timestamp, Url } from './primitives.ts';
+import { SortKey } from './sort-key.ts';
 
 export const CARD_KINDS = ['stay', 'eat', 'do', 'transport', 'note'] as const;
 export const CardKind = z.enum(CARD_KINDS);

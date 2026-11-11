@@ -1,10 +1,16 @@
 import {
+  buildImportCards,
   Card,
   CardInsert,
+  type ImportDraftItem,
   type InviteRole,
   InvitePreview,
   Place,
+  placeQueryKey,
+  planPlaceLookups,
   Profile,
+  readImportDraft,
+  type SkippedImportItem,
   type SortKeyChange,
   Trip,
   TripInsert,
@@ -219,17 +225,24 @@ const FoundPlace = z.object({
   timezone: z.string().nullable(),
 });
 
-/** Calls the place-search function, surfacing the message it returns on failure. */
-async function callPlaces(body: Record<string, unknown>): Promise<unknown> {
-  const { data, error } = await supabase.functions.invoke('places', { body });
+/** Calls a server function, surfacing the message it returns on failure. */
+async function callFunction(
+  name: string,
+  body: Record<string, unknown>,
+  fallback: string,
+): Promise<unknown> {
+  const { data, error } = await supabase.functions.invoke(name, { body });
   if (error) {
     const detail = await (error as { context?: Response }).context
       ?.json()
       .catch(() => null);
-    throw new Error(detail?.error ?? 'Place search is unavailable');
+    throw new Error(detail?.error ?? fallback);
   }
   return data;
 }
+
+const callPlaces = (body: Record<string, unknown>) =>
+  callFunction('places', body, 'Place search is unavailable');
 
 export interface PlaceSearch {
   input: string;
@@ -243,45 +256,191 @@ export async function searchPlaces(search: PlaceSearch): Promise<PlaceSuggestion
   return z.object({ suggestions: z.array(placeSuggestion) }).parse(data).suggestions;
 }
 
+interface PlacePick {
+  providerPlaceId: string;
+  sessionToken: string;
+}
+
 /** Looks up a suggestion's details and saves it as one of the trip's places. */
+async function savePlace(tripId: string, pick: PlacePick): Promise<Place> {
+  const data = await callPlaces({
+    action: 'details',
+    placeId: pick.providerPlaceId,
+    sessionToken: pick.sessionToken,
+  });
+  const found = z.object({ place: FoundPlace }).parse(data).place;
+  // If the trip already has this place, this refreshes it and reuses the row.
+  const row = unwrap(
+    await supabase
+      .from('places')
+      .upsert(
+        {
+          trip_id: tripId,
+          provider: 'google',
+          provider_place_id: found.provider_place_id,
+          name: found.name.slice(0, 200),
+          address: found.address?.slice(0, 500) ?? null,
+          lat: found.lat,
+          lng: found.lng,
+          timezone: found.timezone,
+        },
+        { onConflict: 'trip_id,provider,provider_place_id' },
+      )
+      .select(PLACE_COLUMNS)
+      .single(),
+  );
+  return Place.parse(row);
+}
+
 export function useAddPlace(tripId: string) {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async (pick: { providerPlaceId: string; sessionToken: string }) => {
-      const data = await callPlaces({
-        action: 'details',
-        placeId: pick.providerPlaceId,
-        sessionToken: pick.sessionToken,
-      });
-      const found = z.object({ place: FoundPlace }).parse(data).place;
-      // If the trip already has this place, this refreshes it and reuses the row.
-      const row = unwrap(
-        await supabase
-          .from('places')
-          .upsert(
-            {
-              trip_id: tripId,
-              provider: 'google',
-              provider_place_id: found.provider_place_id,
-              name: found.name.slice(0, 200),
-              address: found.address?.slice(0, 500) ?? null,
-              lat: found.lat,
-              lng: found.lng,
-              timezone: found.timezone,
-            },
-            { onConflict: 'trip_id,provider,provider_place_id' },
-          )
-          .select(PLACE_COLUMNS)
-          .single(),
-      );
-      return Place.parse(row);
-    },
+    mutationFn: (pick: PlacePick) => savePlace(tripId, pick),
     onSuccess: (place) => {
       queryClient.setQueryData<Place[]>(placesKey(tripId), (places) => [
         ...(places ?? []).filter((existing) => existing.id !== place.id),
         place,
       ]);
     },
+  });
+}
+
+// --- Itinerary import --------------------------------------------------------
+
+export interface ImportedDraft {
+  drafts: ImportDraftItem[];
+  runId: string;
+}
+
+/** Sends pasted text to be read into draft items. Writes nothing to the trip. */
+export function useImportItinerary(tripId: string) {
+  return useMutation({
+    mutationFn: async (text: string): Promise<ImportedDraft> => {
+      const data = await callFunction(
+        'import-itinerary',
+        { tripId, text },
+        'Import is unavailable right now. Try again later.',
+      );
+      const { drafts, runId } = z.object({ drafts: z.unknown(), runId: z.string() }).parse(data);
+      // Validated again here: the app trusts no one else's idea of a draft.
+      return { drafts: readImportDraft({ items: drafts }).items, runId };
+    },
+  });
+}
+
+/**
+ * Finds a place for each query, spending at most one provider lookup on each.
+ * A place the trip already has is reused. A query that finds nothing, or fails,
+ * is left out, and its cards are added without a place.
+ */
+async function resolvePlaces(
+  tripId: string,
+  queries: readonly string[],
+  existing: readonly Place[],
+): Promise<Map<string, Place>> {
+  const resolved = new Map<string, Place>();
+  const known = new Map(
+    existing.filter((p) => p.provider === 'google').map((p) => [p.provider_place_id, p]),
+  );
+  let near = existing[0] ? { lat: existing[0].lat, lng: existing[0].lng } : undefined;
+
+  const resolve = async (query: string) => {
+    try {
+      // One token covers the search and the details call, which is how the
+      // provider bills them as a single lookup.
+      const sessionToken = Crypto.randomUUID();
+      const [top] = await searchPlaces({ input: query, sessionToken, near });
+      if (!top) return;
+      const place =
+        known.get(top.provider_place_id) ??
+        (await savePlace(tripId, { providerPlaceId: top.provider_place_id, sessionToken }));
+      known.set(place.provider_place_id, place);
+      resolved.set(placeQueryKey(query), place);
+      near ??= { lat: place.lat, lng: place.lng };
+    } catch {
+      // The card is still worth adding without its place.
+    }
+  };
+
+  // The first lookup runs alone so the rest can be biased towards it.
+  const pending = [...queries];
+  if (!near && pending.length > 0) await resolve(pending.shift()!);
+  const workers = Array.from({ length: 4 }, async () => {
+    for (let query = pending.shift(); query !== undefined; query = pending.shift()) {
+      await resolve(query);
+    }
+  });
+  await Promise.all(workers);
+  return resolved;
+}
+
+export interface ConfirmImport {
+  /** The items the person kept, in source order. */
+  items: ImportDraftItem[];
+  runId: string;
+  trip: Trip;
+  /** A start date chosen on the import screen, for a trip that has none. */
+  startDate: string | null;
+  places: readonly Place[];
+  cards: readonly Card[];
+}
+
+export interface ConfirmImportResult {
+  added: number;
+  skipped: SkippedImportItem[];
+}
+
+/** Adds the kept items to the trip as cards. This is the only step that writes. */
+export function useConfirmImport(tripId: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (input: ConfirmImport): Promise<ConfirmImportResult> => {
+      const resolved = await resolvePlaces(tripId, planPlaceLookups(input.items), input.places);
+      const { cards, skipped } = buildImportCards({
+        items: input.items,
+        trip: input.trip,
+        startDate: input.startDate,
+        places: resolved,
+        existingCards: input.cards,
+        newId: () => Crypto.randomUUID(),
+      });
+
+      let added = 0;
+      if (cards.length > 0) {
+        const rows: Record<string, unknown>[] = cards;
+        const batch = await supabase.from('cards').insert(rows);
+        if (!batch.error) {
+          added = cards.length;
+        } else {
+          // One bad row fails a batch, so fall back to adding them one by one.
+          for (const card of cards) {
+            const row: Record<string, unknown> = card;
+            const { error } = await supabase.from('cards').insert(row);
+            if (error) {
+              skipped.push({ index: -1, title: card.title, reason: error.message });
+            } else {
+              added++;
+            }
+          }
+        }
+      }
+
+      // Bookkeeping only; a failure here must not undo a successful import.
+      await supabase
+        .rpc('update_import_run', {
+          p_run_id: input.runId,
+          p_cards_added: added,
+          p_places_resolved: new Set([...resolved.values()].map((place) => place.id)).size,
+        })
+        .then(undefined, () => undefined);
+
+      return { added, skipped };
+    },
+    onSettled: () =>
+      Promise.all([
+        queryClient.invalidateQueries({ queryKey: cardsKey(tripId) }),
+        queryClient.invalidateQueries({ queryKey: placesKey(tripId) }),
+      ]),
   });
 }
 

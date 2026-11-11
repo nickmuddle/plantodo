@@ -47,6 +47,7 @@ function Screens() {
         <Stack.Screen name="trips/new" options={{ title: 'New trip' }} />
         <Stack.Screen name="trips/[id]/index" options={{ title: 'Trip' }} />
         <Stack.Screen name="trips/[id]/people" options={{ title: 'People' }} />
+        <Stack.Screen name="trips/[id]/import" options={{ title: 'Import itinerary' }} />
         <Stack.Screen name="trips/[id]/cards/new" options={{ title: 'New card' }} />
         <Stack.Screen name="trips/[id]/cards/[cardId]" options={{ title: 'Card' }} />
         <Stack.Screen name="account" options={{ title: 'Account' }} />

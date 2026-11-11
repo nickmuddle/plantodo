@@ -165,7 +165,7 @@ How firm the plan is. Independent of whether the card has a date.
 |---|---|
 | `user` | A member created it |
 | `suggestion` | The app proposed it |
-| `import` | Brought in from elsewhere, such as a booking confirmation |
+| `import` | Brought in from elsewhere, such as a pasted itinerary |
 
 A suggestion is an ordinary card. It also carries a `suggestion_state`:
 
@@ -228,6 +228,84 @@ Transport has two ways to say where it goes, for two different situations:
   are not themselves cards, such as a flight between two airports.
 - **Links** for travel between two things already in the plan. If the hotel card
   moves to a different place, the walk still connects the right cards.
+
+## Import
+
+Turning a pasted itinerary into cards. Schemas and rules are in
+`packages/domain/src/import.ts`.
+
+```mermaid
+flowchart LR
+    text["Pasted text"] --> model["Model reads it"]
+    model --> drafts["Draft items"]
+    drafts --> review["Person reviews, unticks, edits titles"]
+    review --> places["Places looked up for kept items"]
+    places --> cards["Cards added to the trip"]
+```
+
+Nothing is written to the trip until the last step.
+
+### Draft item
+
+What the model returns for each thing it finds. A draft is not a card: it has no
+id, no trip and no place, only what the text said.
+
+| Field | Meaning |
+|---|---|
+| `kind` | `stay`, `eat`, `do`, `transport`, or `note` for anything else worth keeping |
+| `title`, `notes`, `url` | As on a card. A link is kept only if it appears in the pasted text |
+| `day` | Day of the trip, counting from 1, when the text says "Day 2" |
+| `date` | An explicit calendar date from the text |
+| `start_time`, `end_time` | Clock times, only when the text gives them |
+| `place_query` | A place name plus locality to search for |
+| `end_place_query` | Transport only: where it arrives |
+| `details` | `meal`, `cuisine`, `category`, `mode`, `carrier`, `service_number` |
+
+Model output is untrusted. Each item is checked on its own; one that is not
+valid is dropped and the rest are kept.
+
+### From draft to card
+
+| Card field | Rule |
+|---|---|
+| `origin`, `status` | Always `import` and `idea` |
+| `sort_key` | After the trip's existing cards, in the order of the text |
+| `start_date` | The explicit date if there is one. Otherwise day N is the trip's start date plus N − 1 (or a start date given at import time, if the trip has none). Otherwise unscheduled |
+| `start_tz` | The zone of the card's place if it was found, otherwise the trip's zone |
+| `end_date`, `end_tz` | Set when the text gives an end time. Same day as the start, or the next day if that would put the end before the start. Transport ends in the zone of the place it arrives at |
+| `place_id`, `end_place_id` | The place found for each query, if any |
+| `details` | Only the fields that belong to the card's kind. Transport with no clear mode gets `other` |
+
+What a card cannot hold is kept in its notes: a day number or time on an
+unscheduled card, and the name of a place that was not found.
+
+A stay is imported on its first day only; the draft carries no check-out date.
+Imports do not create card links.
+
+### Places
+
+Looking up a place costs money, so:
+
+- Lookups happen only for items the person kept, when they confirm.
+- Each distinct query is looked up once per import, up to 25. Beyond that, or
+  when nothing matches, the card is added without a place.
+- A place the trip already has is reused instead of being fetched again.
+
+### Import run
+
+A record of one import, for the daily limit and for seeing how the feature is
+used. It holds sizes and counts, never the pasted text.
+
+| Field | Meaning |
+|---|---|
+| `user_id`, `trip_id` | Who ran it and where. `trip_id` is cleared if the trip is deleted |
+| `input_chars` | Length of the pasted text |
+| `drafts_returned` | Items the model found. Empty if the model never answered |
+| `cards_added`, `places_resolved` | Filled in when the person confirms |
+| `model` | Which model read the text |
+
+Only owners and editors can import. Each person can run 10 imports in any 24
+hours; a run counts once the model has answered. A person can see their own runs.
 
 ## How suggestions use the model
 

@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { Id, Timestamp } from './primitives';
+import { Id, Timestamp } from './primitives.ts';
 
 /**
  * A typed, directed relation between two cards in the same trip, read as

@@ -1,0 +1,10 @@
+{
+  "imports": {
+    "@anthropic-ai/sdk": "npm:@anthropic-ai/sdk@^1.8.0",
+    "@anthropic-ai/sdk/": "npm:/@anthropic-ai/sdk@^1.8.0/",
+    "@plantodo/domain": "../../../packages/domain/src/index.ts",
+    "@plantodo/domain/": "../../../packages/domain/src/",
+    "fractional-indexing": "npm:fractional-indexing@^4.0.0",
+    "zod": "npm:zod@^4.6.7"
+  }
+}

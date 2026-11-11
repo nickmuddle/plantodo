@@ -1,7 +1,7 @@
-import { CARD_KINDS, type Card, type CardKind } from './card';
-import type { Place } from './place';
-import type { LocalDate } from './primitives';
-import { compareSortKeys, type SortKey, sortKeyBetween, sortKeysBetween } from './sort-key';
+import { CARD_KINDS, type Card, type CardKind } from './card.ts';
+import type { Place } from './place.ts';
+import type { LocalDate } from './primitives.ts';
+import { compareSortKeys, type SortKey, sortKeyBetween, sortKeysBetween } from './sort-key.ts';
 
 // How a trip's cards are arranged for display, and how a manual reorder is
 // turned into sort-key writes. Pure functions, shared by every client.

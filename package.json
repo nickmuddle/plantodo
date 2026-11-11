@@ -12,6 +12,8 @@
     "app": "pnpm --filter @plantodo/app start"
   },
   "devDependencies": {
+    "@anthropic-ai/sdk": "^1.8.0",
+    "@plantodo/domain": "workspace:*",
     "supabase": "3.1.0"
   }
 }

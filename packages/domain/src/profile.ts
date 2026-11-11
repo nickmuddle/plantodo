@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { Id, Timestamp } from './primitives';
+import { Id, Timestamp } from './primitives.ts';
 
 export const DisplayName = z.string().trim().min(1).max(80);
 

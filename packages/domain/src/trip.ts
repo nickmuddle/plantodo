@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { Id, LocalDate, TimeZone, Timestamp } from './primitives';
+import { Id, LocalDate, TimeZone, Timestamp } from './primitives.ts';
 
 export const TRIP_ROLES = ['owner', 'editor', 'viewer'] as const;
 export const TripRole = z.enum(TRIP_ROLES);
